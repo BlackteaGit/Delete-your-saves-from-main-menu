@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30517.126
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeleteWorldSaves", "DeleteWorldSaves\DeleteWorldSaves.csproj", "{087ACA9E-E669-4B1A-8FCD-9FC984E804BE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{087ACA9E-E669-4B1A-8FCD-9FC984E804BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{087ACA9E-E669-4B1A-8FCD-9FC984E804BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{087ACA9E-E669-4B1A-8FCD-9FC984E804BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{087ACA9E-E669-4B1A-8FCD-9FC984E804BE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {507C8204-9A04-4932-A262-D8A27D27241B}
+	EndGlobalSection
+EndGlobal
