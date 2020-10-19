@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using HarmonyLib;
 using CoOpSpRpG;
-using System.Reflection;
 using System.IO;
 using Microsoft.Xna.Framework;
 using WTFModLoader;
@@ -31,46 +28,16 @@ namespace DeleteWorldSaves
 
         public static SaveEntry focusedSave;
         public static ScrollCanvas MyscrollLoadCanvas;
+        public static bool popupActive = false;
+        public static GuiElement popupConfirmDelete;
         public static void deleteSave(GuiElement inp)
         {
 
-            bool flag2 = MyRootMenuRev2.focusedSave != null;
-            if (flag2)
+            if (MyRootMenuRev2.focusedSave != null)
             {
-                try
-                {   
-                    // the next part of the code will try to delete the given save entry first in new format, if the file is not found, then in the old format.
-                    string path = Directory.GetCurrentDirectory() + "\\worldsaves\\" + MyRootMenuRev2.focusedSave.name + ".wdb";
-                    if (System.IO.File.Exists(path))
-                    { 
-                    File.Delete(path);
-                    }
-                    string legacypath = Directory.GetCurrentDirectory() + "\\worldsaves\\" + MyRootMenuRev2.focusedSave.name + ".wsav";
-                    if (System.IO.File.Exists(legacypath))
-                    {
-                        File.Delete(legacypath);
-                    }
-                    // we have to execute the code from RootMenuRev2.actionOpenLoad again to update the savegame list after the file is deleted
-                    MyRootMenuRev2.MyscrollLoadCanvas.elementList.Clear();
-                        bool flag = !Directory.Exists(Directory.GetCurrentDirectory() + "\\worldsaves\\");
-                        if (flag)
-                        {
-                            Directory.CreateDirectory(Directory.GetCurrentDirectory() + "\\worldsaves\\");
-                        }
-                        DirectoryInfo directoryInfo = new DirectoryInfo(Directory.GetCurrentDirectory() + "\\worldsaves\\");
-                    var extensions = new[] { "*.wdb", "*.wsav" };
-                    var files = extensions.SelectMany(ext => directoryInfo.GetFiles(ext));
-                    foreach (FileInfo fileInfo in files)
-                    {
-                        string date = fileInfo.LastWriteTime.ToString("f", CONFIG.culture_en_US);
-                        MyRootMenuRev2.MyscrollLoadCanvas.AddSaveEntry(Path.GetFileNameWithoutExtension(fileInfo.Name), date, SCREEN_MANAGER.white, 0, 4, 436, 52, SortType.vertical, new SaveEntry.ClickJournalEvent(DeleteWorldSaves.MyRootMenuRev2.MyselectEntry), null);
-                    }
+                    popupConfirmDelete.isVisible = true;
+                    popupActive = true;
 
-                }
-                catch
-                {
-                    SCREEN_MANAGER.alerts.Enqueue("Unable to delete"); // try/catch block is copied from the original deleteSave method included into debug version of ingame menu, not sure if it works here as intended though
-                }
             }
 
         }
@@ -87,13 +54,54 @@ namespace DeleteWorldSaves
         public static void loadGame(GuiElement inp)
         {
             // this method has to be called instead of RootMenuRev2.loadGame since we can not patch with Harmony the private original which uses instance variable. 
-            bool flag = MyRootMenuRev2.focusedSave != null;
-            if (flag)
+            if (MyRootMenuRev2.focusedSave != null)
             {
                 string name = MyRootMenuRev2.focusedSave.name;
                 DeleteWorldSaves.MyRootMenuRev2.databaseLoadSpecified(name); // we also have to make our own method for loading the save as the original can not be accessed without harmony patch/reflections
             }
 
+        }
+
+        public static void actionCancelDelete(object sender)
+        {
+            popupActive = false;
+            popupConfirmDelete.isVisible = false;
+        }
+
+        public static void actionConfirmDelete(object sender)
+        {
+            if (popupActive)
+            {
+                // the next part of the code will try to delete the given save entry first in new format, if the file is not found, then in the old format.
+                string path = Directory.GetCurrentDirectory() + "\\worldsaves\\" + MyRootMenuRev2.focusedSave.name + ".wdb";
+                if (System.IO.File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+                string legacypath = Directory.GetCurrentDirectory() + "\\worldsaves\\" + MyRootMenuRev2.focusedSave.name + ".wsav";
+                if (System.IO.File.Exists(legacypath))
+                {
+                    File.Delete(legacypath);
+                }
+
+                // we have to execute the code from RootMenuRev2.actionOpenLoad again to update the savegame list after the file is deleted
+                MyRootMenuRev2.MyscrollLoadCanvas.elementList.Clear();
+                bool flag = !Directory.Exists(Directory.GetCurrentDirectory() + "\\worldsaves\\");
+                if (flag)
+                {
+                    Directory.CreateDirectory(Directory.GetCurrentDirectory() + "\\worldsaves\\");
+                }
+                DirectoryInfo directoryInfo = new DirectoryInfo(Directory.GetCurrentDirectory() + "\\worldsaves\\");
+                var extensions = new[] { "*.wdb", "*.wsav" };
+                var files = extensions.SelectMany(ext => directoryInfo.GetFiles(ext));
+                foreach (FileInfo fileInfo in files)
+                {
+                    string date = fileInfo.LastWriteTime.ToString("f", CONFIG.culture_en_US);
+                    MyRootMenuRev2.MyscrollLoadCanvas.AddSaveEntry(Path.GetFileNameWithoutExtension(fileInfo.Name), date, SCREEN_MANAGER.white, 0, 4, 436, 52, SortType.vertical, new SaveEntry.ClickJournalEvent(DeleteWorldSaves.MyRootMenuRev2.MyselectEntry), null);
+                }
+            }
+            popupActive = false;
+            popupConfirmDelete.isVisible = false;
         }
 
         public static void newVersion(string filename)
@@ -126,7 +134,7 @@ namespace DeleteWorldSaves
             float comparevalue = Convert.ToSingle("0.9", System.Globalization.CultureInfo.InvariantCulture);
             if (versioncheck >= comparevalue)
             {
-                DeleteWorldSaves.MyRootMenuRev2.newVersion(filename); // we have to split the actual loding code into separate methods as the field "CHARACTER_DATA.continueFileName" does not exist in the old version and will throw an exception once the method containing it is called by the old version of the game.
+                DeleteWorldSaves.MyRootMenuRev2.newVersion(filename); // we have to split the actual loading code into separate methods as the field "CHARACTER_DATA.continueFileName" does not exist in the old version and will throw an exception once the method containing it is called by the old version of the game.
             }
             else
             {
@@ -143,9 +151,10 @@ namespace DeleteWorldSaves
     public class RootMenuRev2_createElements
 
     {
+
         [HarmonyPostfix]
         // we use a postfix patch on RootMenuRev2.createElements to find and resize all parts of the "open game" dialogue to fit the new delete button, after that we clear out the original button container and replace them with our own buttons.
-        private static void Postfix(RootMenuRev2 __instance, ref GuiElement ___popupLoad, ref ScrollCanvas ___scrollLoadCanvas)
+        private static void Postfix(RootMenuRev2 __instance, ref GuiElement ___popupLoad, ref ScrollCanvas ___scrollLoadCanvas, ref List<GuiElement> ___popupCanvas)
         {
             int num3 = 300;
             Color fontColor = new Color(226, 252, 255, 210);
@@ -174,10 +183,35 @@ namespace DeleteWorldSaves
 
                     }
                 }
+                // adding a confirmation dialogue
+                ___popupCanvas.Add(new Canvas("confirm delete worldsave", SCREEN_MANAGER.white, 600, 600, 0, 0, 300, 80, SortType.vertical, new Color(14, 18, 19, 245)));
+                DeleteWorldSaves.MyRootMenuRev2.popupConfirmDelete = ___popupCanvas.Last<GuiElement>();
+                DeleteWorldSaves.MyRootMenuRev2.popupConfirmDelete.addLabel("Confirm delete", SCREEN_MANAGER.FF20, 70, 0, 150, 40, CONFIG.textBrightColor);
+                DeleteWorldSaves.MyRootMenuRev2.popupConfirmDelete.AddCanvas("confirm delete worldsave buttons", SCREEN_MANAGER.white, 0, 0, 300, 40, SortType.horizontal);
+                GuiElement guiElement6 = DeleteWorldSaves.MyRootMenuRev2.popupConfirmDelete.elementList.Last<GuiElement>();
+                guiElement6.AddButton("Confirm", SCREEN_MANAGER.white, 0, 0, 150, 40, new BasicButton.ClickEvent(DeleteWorldSaves.MyRootMenuRev2.actionConfirmDelete), SCREEN_MANAGER.FF16, CONFIG.textColorRed);
+                guiElement6.AddButton("Cancel", SCREEN_MANAGER.white, 0, 0, 150, 40, new BasicButton.ClickEvent(DeleteWorldSaves.MyRootMenuRev2.actionCancelDelete), SCREEN_MANAGER.FF16, CONFIG.textBrightColor);
+                DeleteWorldSaves.MyRootMenuRev2.popupConfirmDelete.isVisible = false;
             }
         }
 
     }
+
+    [HarmonyPatch(typeof(RootMenuRev2), "resize")]
+    public class RootMenuRev2_resize
+
+    {
+
+        [HarmonyPostfix]
+        private static void Postfix(ref int ___screenWidth, ref int ___screenHeight)
+        {
+            DeleteWorldSaves.MyRootMenuRev2.popupConfirmDelete.reposition(___screenWidth / 2 - DeleteWorldSaves.MyRootMenuRev2.popupConfirmDelete.region.Height / 2, ___screenHeight / 2, false);
+        }
+
+    }
+
+
+
 
     // actionOpenLoad is called by clicking "Load world" button, it will be executed only once and only by this trigger. This is where any found savegames will be listed in scroll canvas.
     [HarmonyPatch(typeof(RootMenuRev2), "actionOpenLoad")]
