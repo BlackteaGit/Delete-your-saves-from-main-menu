@@ -7,6 +7,9 @@ using System.IO;
 using Microsoft.Xna.Framework;
 using WTFModLoader;
 using WTFModLoader.Manager;
+using System.Data.SQLite;
+using System.Data;
+using System.Reflection;
 
 namespace DeleteWorldSaves
 {
@@ -35,8 +38,8 @@ namespace DeleteWorldSaves
 
             if (MyRootMenuRev2.focusedSave != null)
             {
-                    popupConfirmDelete.isVisible = true;
-                    popupActive = true;
+                popupConfirmDelete.isVisible = true;
+                popupActive = true;
 
             }
 
@@ -48,7 +51,7 @@ namespace DeleteWorldSaves
             // It holds the current save entry which is selected from the scroll canvas. Because we have to use our own variable we also have to repalce all methods of RootMenuRev2 which use it by our own. 
             // The problem possibly could be solved with reflections, however i am not sure how to do it.
             MyRootMenuRev2.focusedSave = entry;
-   
+
         }
 
         public static void loadGame(GuiElement inp)
@@ -73,15 +76,25 @@ namespace DeleteWorldSaves
             if (popupActive)
             {
                 // the next part of the code will try to delete the given save entry first in new format, if the file is not found, then in the old format.
-                string path = Directory.GetCurrentDirectory() + "\\worldsaves\\" + MyRootMenuRev2.focusedSave.name + ".wdb";
+                string path = Directory.GetCurrentDirectory() + "\\worldsaves\\" + MyRootMenuRev2.focusedSave.name + ".wdb"; // 0.9 format
                 if (System.IO.File.Exists(path))
                 {
                     File.Delete(path);
+                    deleteContinueFileName(); //delete file from the characters "continue" database.
                 }
-                string legacypath = Directory.GetCurrentDirectory() + "\\worldsaves\\" + MyRootMenuRev2.focusedSave.name + ".wsav";
+                string legacypath = Directory.GetCurrentDirectory() + "\\worldsaves\\" + MyRootMenuRev2.focusedSave.name + ".wsav"; // pre 0.9 format
                 if (System.IO.File.Exists(legacypath))
                 {
                     File.Delete(legacypath);
+                }
+
+                // added for compatibility with my future mods. It will search for any possible mod save database associated with current worldsave and delete it.
+                string[] modfiles = Directory.GetFiles(Directory.GetCurrentDirectory() + "\\worldsaves\\", MyRootMenuRev2.focusedSave.name + "*", SearchOption.AllDirectories);
+                for (int i = 0; i < modfiles.Count(); i++)
+                {
+                    var file = modfiles[i];
+                    if (file.Contains("_MODSAVE.sqlite"))
+                        File.Delete(file);
                 }
 
                 // we have to execute the code from RootMenuRev2.actionOpenLoad again to update the savegame list after the file is deleted
@@ -104,7 +117,23 @@ namespace DeleteWorldSaves
             popupConfirmDelete.isVisible = false;
         }
 
-        public static void newVersion(string filename)
+        public static void deleteContinueFileName()
+        {
+            BindingFlags flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static;
+            SQLiteConnection dBCon = typeof(CHARACTER_DATA).GetField("dBCon", flags).GetValue(null) as SQLiteConnection; //using reflections to access the static field dBCon from the class CHARACTER_DATA
+            /* testing continues value replacement
+            string commandText = "insert or replace into continues (name, game) select @name, @game where exists(select * from continues where game = '" + MyRootMenuRev2.focusedSave.name + "')";
+            SQLiteCommand sqliteCommand = new SQLiteCommand(commandText, dBCon);
+            sqliteCommand.Parameters.Add("@name", DbType.String, 32).Value = CHARACTER_DATA.selected;
+            sqliteCommand.Parameters.AddWithValue("@game", DBNull.Value);
+            sqliteCommand.ExecuteNonQuery();
+            */
+            string commandText = "delete from continues where game = '" + MyRootMenuRev2.focusedSave.name + "'";
+            SQLiteCommand sqliteCommand = new SQLiteCommand(commandText, dBCon);
+            sqliteCommand.ExecuteNonQuery();
+        }
+
+    public static void newVersion(string filename)
         {
             //a copy of the original code from 0.9 version of the game
             LoadingWorldScreen loadingWorldScreen = SCREEN_MANAGER.get_screen("loadWorld") as LoadingWorldScreen;
