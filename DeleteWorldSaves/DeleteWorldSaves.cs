@@ -50,7 +50,10 @@ namespace DeleteWorldSaves
             // since we can not access any instance variables of the RootMenuRev2 without running a harmony patch, we replace RootMenuRev2.focusedSave with our own static varible which will have the same purpose as the original.
             // It holds the current save entry which is selected from the scroll canvas. Because we have to use our own variable we also have to repalce all methods of RootMenuRev2 which use it by our own. 
             // The problem possibly could be solved with reflections, however i am not sure how to do it.
+            if(!DeleteWorldSaves.MyRootMenuRev2.popupConfirmDelete.isVisible)
+            {
             MyRootMenuRev2.focusedSave = entry;
+            }
 
         }
 
@@ -93,7 +96,7 @@ namespace DeleteWorldSaves
                 for (int i = 0; i < modfiles.Count(); i++)
                 {
                     var file = modfiles[i];
-                    if (file.Contains("_MODSAVE.sqlite"))
+                    if (file.Contains("_MODSAVE"))
                         File.Delete(file);
                 }
 
