@@ -52,9 +52,8 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
-    <Reference Include="WTF, Version=0.3.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Zero Falls\WTF.exe</HintPath>
+    <Reference Include="WTF">
+      <HintPath>G:\SteamLibrary\steamapps\common\Zero Falls\WTF.exe</HintPath>
     </Reference>
     <Reference Include="WTFModLoader, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>

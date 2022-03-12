@@ -91,6 +91,12 @@ namespace DeleteWorldSaves
                     File.Delete(legacypath);
                 }
 
+                string path1 = Directory.GetCurrentDirectory() + "\\worldsaves\\" + MyRootMenuRev2.focusedSave.name + ".wdb-journal"; 
+                if (System.IO.File.Exists(path1))
+                {
+                    File.Delete(path1);
+                }
+
                 // added for compatibility with my future mods. It will search for any possible mod save database associated with current worldsave and delete it.
                 string[] modfiles = Directory.GetFiles(Directory.GetCurrentDirectory() + "\\worldsaves\\", MyRootMenuRev2.focusedSave.name + "*", SearchOption.AllDirectories);
                 for (int i = 0; i < modfiles.Count(); i++)
@@ -131,9 +137,19 @@ namespace DeleteWorldSaves
             sqliteCommand.Parameters.AddWithValue("@game", DBNull.Value);
             sqliteCommand.ExecuteNonQuery();
             */
-            string commandText = "delete from continues where game = '" + MyRootMenuRev2.focusedSave.name + "'";
-            SQLiteCommand sqliteCommand = new SQLiteCommand(commandText, dBCon);
-            sqliteCommand.ExecuteNonQuery();
+            if (MyRootMenuRev2.focusedSave.name == "")
+            {
+                string commandText2 = "delete from continues where game IS NULL OR trim(game) = ''";
+                SQLiteCommand sqliteCommand2 = new SQLiteCommand(commandText2, dBCon);
+                sqliteCommand2.ExecuteNonQuery();
+            }
+            else
+            { 
+                string commandText = "delete from continues where game = '" + MyRootMenuRev2.focusedSave.name + "'";
+                SQLiteCommand sqliteCommand = new SQLiteCommand(commandText, dBCon);
+                sqliteCommand.ExecuteNonQuery();
+            }
+
         }
 
     public static void newVersion(string filename)
@@ -237,7 +253,10 @@ namespace DeleteWorldSaves
         [HarmonyPostfix]
         private static void Postfix(ref int ___screenWidth, ref int ___screenHeight)
         {
-            DeleteWorldSaves.MyRootMenuRev2.popupConfirmDelete.reposition(___screenWidth / 2 - DeleteWorldSaves.MyRootMenuRev2.popupConfirmDelete.region.Height / 2, ___screenHeight / 2, false);
+            if (!CONFIG.openMP)
+            {
+                DeleteWorldSaves.MyRootMenuRev2.popupConfirmDelete.reposition(___screenWidth / 2 - DeleteWorldSaves.MyRootMenuRev2.popupConfirmDelete.region.Height / 2, ___screenHeight / 2, false);
+            }
         }
 
     }
@@ -252,30 +271,35 @@ namespace DeleteWorldSaves
         [HarmonyPrefix]
         private static Boolean Prefix( ref ScrollCanvas ___scrollLoadCanvas, ref GuiElement ___popupLoad, ref bool ___popupActive, ref SaveEntry ___focusedSave)
         {
-            
 
-            DeleteWorldSaves.MyRootMenuRev2.MyscrollLoadCanvas = ___scrollLoadCanvas;
-            ___popupActive = true;
-            ___scrollLoadCanvas.elementList.Clear();
-            bool flag = !Directory.Exists(Directory.GetCurrentDirectory() + "\\worldsaves\\");
-            if (flag)
+            if (!CONFIG.openMP)
             {
-                Directory.CreateDirectory(Directory.GetCurrentDirectory() + "\\worldsaves\\");
-            }
-            DirectoryInfo directoryInfo = new DirectoryInfo(Directory.GetCurrentDirectory() + "\\worldsaves\\");
-            var extensions = new[] { "*.wdb", "*.wsav" }; // to make this patch compatible with 0.8 and 0.9 versions of the game we search for save files in the old and the new format
-            var files = extensions.SelectMany(ext => directoryInfo.GetFiles(ext));
-            foreach (FileInfo fileInfo in files)
-            {
-                string date = fileInfo.LastWriteTime.ToString("f", CONFIG.culture_en_US);
-                // we have to replace RootMenuRev2.selectEntry method with our own, as we can not patch a private method with prefix or postfix patch. A reverse-patch would be an option if this method would not use any instance variables.
-                // since it uses "this.focusedSave" "this." would be referring to an instance of our own class in a reverse-patch, which obviously would not work.
-                MyRootMenuRev2.MyscrollLoadCanvas.AddSaveEntry(Path.GetFileNameWithoutExtension(fileInfo.Name), date, SCREEN_MANAGER.white, 0, 4, 436, 52, SortType.vertical, new SaveEntry.ClickJournalEvent(DeleteWorldSaves.MyRootMenuRev2.MyselectEntry), null);
-            }
-            ___popupLoad.isVisible = true;
-            
-            return false; // returning "false" in a prefix patch is an instruction for Harmony to supress execution of the original method, so only our replacement will be executed-
+                DeleteWorldSaves.MyRootMenuRev2.MyscrollLoadCanvas = ___scrollLoadCanvas;
+                ___popupActive = true;
+                ___scrollLoadCanvas.elementList.Clear();
+                bool flag = !Directory.Exists(Directory.GetCurrentDirectory() + "\\worldsaves\\");
+                if (flag)
+                {
+                    Directory.CreateDirectory(Directory.GetCurrentDirectory() + "\\worldsaves\\");
+                }
+                DirectoryInfo directoryInfo = new DirectoryInfo(Directory.GetCurrentDirectory() + "\\worldsaves\\");
+                var extensions = new[] { "*.wdb", "*.wsav" }; // to make this patch compatible with 0.8 and 0.9 versions of the game we search for save files in the old and the new format
+                var files = extensions.SelectMany(ext => directoryInfo.GetFiles(ext));
+                foreach (FileInfo fileInfo in files)
+                {
+                    string date = fileInfo.LastWriteTime.ToString("f", CONFIG.culture_en_US);
+                    // we have to replace RootMenuRev2.selectEntry method with our own, as we can not patch a private method with prefix or postfix patch. A reverse-patch would be an option if this method would not use any instance variables.
+                    // since it uses "this.focusedSave" "this." would be referring to an instance of our own class in a reverse-patch, which obviously would not work.
+                    MyRootMenuRev2.MyscrollLoadCanvas.AddSaveEntry(Path.GetFileNameWithoutExtension(fileInfo.Name), date, SCREEN_MANAGER.white, 0, 4, 436, 52, SortType.vertical, new SaveEntry.ClickJournalEvent(DeleteWorldSaves.MyRootMenuRev2.MyselectEntry), null);
+                }
+                ___popupLoad.isVisible = true;
 
+                return false; // returning "false" in a prefix patch is an instruction for Harmony to supress execution of the original method, so only our replacement will be executed-
+            }
+            else
+            {
+                return true;
+            }
         }
 
     }
